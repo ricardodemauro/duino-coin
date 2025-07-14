@@ -1,5 +1,6 @@
 using Sockets
 using SHA
+using Dates
 
 username = ENV["DUINO_USERNAME"]
 mining_key = ENV["DUINO_MINING_KEY"]
@@ -39,25 +40,56 @@ while true
         
         if length(job_parts) >= 3
             lastBlockHash = job_parts[1]
-            result = job_parts[2]
-            difficulty = parse(Int32, job_parts[3]) * 100
+            expected_hash = job_parts[2]
+            difficulty = parse(Int32, job_parts[3])
             
-            for i = 0:difficulty
-                stringToHash = string(lastBlockHash, string(i))
-                ducos1 = bytes2hex(sha1(stringToHash))
-
-                if ducos1 == result 
-                    response = string(i, ",,Julia Miner")
+            println("Last Block Hash: ", lastBlockHash)
+            println("Expected Hash: ", expected_hash)
+            println("Difficulty: ", difficulty)
+            
+            start_time = now()
+            println("Started mining at: ", start_time)
+            
+            # Pre-compute the base hash (similar to Python's approach)
+            base_hash_ctx = SHA.SHA1_CTX()
+            SHA.update!(base_hash_ctx, lastBlockHash)
+            
+            # Mining loop - note using 100 * difficulty like in Python
+            for i = 0:(100 * difficulty)
+                # Clone the hash context (similar to Python's temp_hash = base_hash.copy())
+                temp_hash_ctx = deepcopy(base_hash_ctx)
+                # Update with current result number
+                SHA.update!(temp_hash_ctx, string(i))
+                # Get final hash
+                ducos1 = bytes2hex(SHA.digest!(temp_hash_ctx))
+                
+                if ducos1 == expected_hash
+                    end_time = now()
+                    duration = Dates.value(end_time - start_time) / 1000 # in seconds
+                    hashrate = i / duration
+                    
+                    println("Mining completed at: ", end_time)
+                    println("Duration: $(duration) seconds, Hashrate: $(round(hashrate/1000, digits=2)) kH/s")
+                    
+                    # Send result back (include hashrate like Python does)
+                    response = "$(i),$(hashrate),Julia Miner"
                     write(socket, response)
+                    
                     feedback = readline(socket)
                     if feedback == "GOOD"
-                        println("Accepted share ", i, "\tDifficulty ", difficulty)
+                        println("Accepted share ", i, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty)
                         break
                     else
-                        println("Rejected share ", i, "\tDifficulty ", difficulty)
+                        println("Rejected share ", i, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty)
                         break
                     end
                 end
+            end
+            
+            if i > 100 * difficulty
+                end_time = now()
+                duration = Dates.value(end_time - start_time) / 1000 # in seconds
+                println("Mining failed after $(duration) seconds")
             end
         else
             println("Invalid job format: received only ", length(job_parts), " parts instead of at least 3")
