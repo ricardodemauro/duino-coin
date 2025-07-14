@@ -25,7 +25,7 @@ function hex2bytes_custom(hex_str)
 end
 
 # DUCO-S1 algorithm implementation - returns the found share or 0 if not found
-function ducosha1(lastBlockHash::String, expected_hash::String, difficulty::Int)
+function ducosha1(lastBlockHash, expected_hash, difficulty)
     expected_hash_bytes = hex2bytes_custom(expected_hash)
     
     for i = 0:(100 * difficulty)
