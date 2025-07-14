@@ -23,6 +23,7 @@ function ducosha1(lastBlockHash, expected_hash, difficulty)
         hash_result = bytes2hex(sha1(string_to_hash))
         
         if hash_result == expected_hash
+			println("Found valid share: ", i, " with hash: ", hash_result)
             return i
         end
     end
