@@ -14,12 +14,12 @@ server_ver = String(read(socket, 3))
 println("Server is on version: ", server_ver)
 
 while true
-	msg = "JOB," + str(username) + ",LOW," + str(mining_key)
+	msg = "JOB," * string(username) * ",LOW," * string(mining_key)
 	byte_message = codeunits(msg)
 	
 	write(socket, byte_message)
 
-	job = String(read(socket, 87))
+	job = readline(socket)
 	println("Job received: ", job)
 
 	job = split(job, ",")
@@ -28,12 +28,13 @@ while true
 	difficulty = parse(Int32, job[3]) * 100
 
 	for i = 0:difficulty
-		stringToHash = string(lastBlockHash, string.(i))
+		stringToHash = string(lastBlockHash, string(i))
 		ducos1 = bytes2hex(sha1(stringToHash))
 
 		if ducos1 == result 
-			write(socket, string(i, ",,Julia Miner"))
-			feedback = String(read(socket, 4))
+			response = string(i, ",,Julia Miner")
+			write(socket, response)
+			feedback = readline(socket)
 			if feedback == "GOOD"
 				println("Accepted share ", i, "\tDifficulty ", difficulty)
 				break
@@ -42,6 +43,5 @@ while true
 				break
 			end
 		end
-		i += 1
 	end
 end
