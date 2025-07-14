@@ -14,21 +14,36 @@ println("Connected to Duino-Coin server")
 server_ver = String(read(socket, 3))
 println("Server is on version: ", server_ver)
 
+# Convert hex string to bytes
+function hex2bytes_custom(hex_str)
+    len = length(hex_str)
+    bytes = Vector{UInt8}(undef, div(len, 2))
+    for i in 1:2:len-1
+        bytes[div(i+1, 2)] = parse(UInt8, hex_str[i:i+1], base=16)
+    end
+    return bytes
+end
+
+# DUCO-S1 algorithm implementation - returns the found share or 0 if not found
+function ducosha1(lastBlockHash::String, expected_hash::String, difficulty::Int)
+    expected_hash_bytes = hex2bytes_custom(expected_hash)
+    
+    for i = 0:(100 * difficulty)
+        hash_input = string(lastBlockHash, i)
+        hash_bytes = sha1(hash_input)
+        
+        if hash_bytes == expected_hash_bytes
+            return i
+        end
+    end
+    
+    return 0  # No valid share found
+end
+
 while true
     try
-
-		# Client.send(job_req
-		#             + Settings.SEPARATOR
-		#             + str(user_settings["username"])
-		#             + Settings.SEPARATOR
-		#             + str(user_settings["start_diff"])
-		#             + Settings.SEPARATOR
-		#             + str(key)
-		#             + Settings.SEPARATOR
-		#             + str(raspi_iot_reading))
-
         msg = "JOB,$(username),LOW,$(mining_key),y"
-		println("Sending message: ", msg)
+        println("Sending message: ", msg)
 
         byte_message = codeunits(msg)
         write(socket, byte_message)
@@ -41,7 +56,7 @@ while true
         if length(job_parts) >= 3
             lastBlockHash = job_parts[1]
             expected_hash = job_parts[2]
-            difficulty = parse(Int32, job_parts[3])
+            difficulty = parse(Int, job_parts[3])
             
             println("Last Block Hash: ", lastBlockHash)
             println("Expected Hash: ", expected_hash)
@@ -50,38 +65,30 @@ while true
             start_time = now()
             println("Started mining at: ", start_time)
             
-            # Fix the hash calculation method
-            for i = 0:(100 * difficulty)
-                # Combine the lastBlockHash and the current i value then hash once
-                stringToHash = string(lastBlockHash, string(i))
-                ducos1 = bytes2hex(sha1(stringToHash))
-                
-                if ducos1 == expected_hash
-                    end_time = now()
-                    duration = Dates.value(end_time - start_time) / 1000 # in seconds
-                    hashrate = i / duration
-                    
-                    println("Mining completed at: ", end_time)
-                    println("Duration: $(duration) seconds, Hashrate: $(round(hashrate/1000, digits=2)) kH/s")
-                    
-                    # Send result back (include hashrate like Python does)
-                    response = "$(i),$(hashrate),Julia Miner"
-                    write(socket, response)
-                    
-					feedback = readline(socket)
-					if feedback == "GOOD"
-						println("Accepted share ", i, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty)
-						break
-					else
-						println("Rejected share ", i, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty, "\tMessage: ", feedback)
-						break
-					end
-                end
-            end
+            # Call the ducosha1 function to find a share
+            result = ducosha1(lastBlockHash, expected_hash, difficulty)
             
-            if i > 100 * difficulty
-                end_time = now()
-                duration = Dates.value(end_time - start_time) / 1000 # in seconds
+            end_time = now()
+            duration = Dates.value(end_time - start_time) / 1000 # in seconds
+            
+            if result > 0
+                hashrate = result / duration
+                
+                println("Mining completed at: ", end_time)
+                println("Duration: $(duration) seconds, Hashrate: $(round(hashrate/1000, digits=2)) kH/s")
+                
+                # Send result back
+                response = "$(result),$(hashrate),Julia Miner"
+                println("Sending response: $(response)")
+                write(socket, response)
+                
+                feedback = readline(socket)
+                if feedback == "GOOD"
+                    println("Accepted share ", result, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty)
+                else
+                    println("Rejected share ", result, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty, "\tMessage: ", feedback)
+                end
+            else
                 println("Mining failed after $(duration) seconds")
             end
         else
@@ -102,6 +109,10 @@ while true
         end
     end
 end
+        try
+            global socket = Sockets.connect(socket_ip, socket_port)
+            println("Reconnected to server")
+        catch
             println("Reconnection failed. Retrying in 5 seconds...")
             sleep(5)
         end
