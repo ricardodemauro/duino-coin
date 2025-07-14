@@ -68,14 +68,14 @@ while true
                     response = "$(i),$(hashrate),Julia Miner"
                     write(socket, response)
                     
-                    feedback = readline(socket)
-                    if feedback == "GOOD"
-                        println("Accepted share ", i, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty)
-                        break
-                    else
-                        println("Rejected share ", i, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty)
-                        break
-                    end
+					feedback = readline(socket)
+					if feedback == "GOOD"
+						println("Accepted share ", i, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty)
+						break
+					else
+						println("Rejected share ", i, "\tHashrate ", round(hashrate/1000, digits=2), " kH/s \tDifficulty ", difficulty, "\tMessage: ", feedback)
+						break
+					end
                 end
             end
             
