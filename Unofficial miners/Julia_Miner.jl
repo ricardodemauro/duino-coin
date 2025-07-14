@@ -74,7 +74,7 @@ while true
                 println("Duration: $(duration) seconds, Hashrate: $(round(hashrate/1000, digits=2)) kH/s")
                 
                 # Send result back
-                response = "$(result - 1),$(hashrate),Julia Miner,$(rig_id)"
+                response = "$(result),$(hashrate),Julia Miner,$(rig_id)"
                 println("Sending response: $(response)")
                 write(socket, response)
                 
