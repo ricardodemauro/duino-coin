@@ -50,18 +50,11 @@ while true
             start_time = now()
             println("Started mining at: ", start_time)
             
-            # Pre-compute the base hash (similar to Python's approach)
-            base_hash_ctx = SHA.SHA1_CTX()
-            SHA.update!(base_hash_ctx, lastBlockHash)
-            
-            # Mining loop - note using 100 * difficulty like in Python
+            # Fix the hash calculation method
             for i = 0:(100 * difficulty)
-                # Clone the hash context (similar to Python's temp_hash = base_hash.copy())
-                temp_hash_ctx = deepcopy(base_hash_ctx)
-                # Update with current result number
-                SHA.update!(temp_hash_ctx, string(i))
-                # Get final hash
-                ducos1 = bytes2hex(SHA.digest!(temp_hash_ctx))
+                # Combine the lastBlockHash and the current i value then hash once
+                stringToHash = string(lastBlockHash, string(i))
+                ducos1 = bytes2hex(sha1(stringToHash))
                 
                 if ducos1 == expected_hash
                     end_time = now()
@@ -97,11 +90,18 @@ while true
         end
     catch e
         println("Error occurred: ", e)
+        # Print stack trace for better debugging
+        println("Stack trace: ", catch_backtrace())
         sleep(3)
         try
             global socket = Sockets.connect(socket_ip, socket_port)
             println("Reconnected to server")
         catch
+            println("Reconnection failed. Retrying in 5 seconds...")
+            sleep(5)
+        end
+    end
+end
             println("Reconnection failed. Retrying in 5 seconds...")
             sleep(5)
         end
