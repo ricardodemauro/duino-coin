@@ -17,8 +17,12 @@ println("Server is on version: ", server_ver)
 
 # DUCO-S1 algorithm implementation - returns the found share or 0 if not found
 function ducosha1(lastBlockHash, expected_hash, difficulty)
-    # Either directly compare hex strings:
-    for i = 0:(100 * difficulty)
+    println("Starting DUCO-S1 mining with difficulty: ", difficulty)
+	println("Last Block Hash: ", lastBlockHash)
+	println("Expected Hash: ", expected_hash)
+
+
+    for i = 0:(100 * (difficulty + 1))
         string_to_hash = string(lastBlockHash, i)  # No need for string.(i) - this is broadcasting syntax
         hash_result = bytes2hex(sha1(string_to_hash))
         
@@ -28,6 +32,7 @@ function ducosha1(lastBlockHash, expected_hash, difficulty)
         end
     end
     
+	println("No valid share found after checking up to ", 100 * difficulty)
     return 0  # No valid share found
 end
 
