@@ -4,6 +4,7 @@ using Dates
 
 username = ENV["DUINO_USERNAME"]
 mining_key = ENV["DUINO_MINING_KEY"]
+rig_id = ENV["DUINO_RIG_ID"]
 
 socket_ip = "152.53.241.160"
 socket_port = 7070
@@ -14,24 +15,15 @@ println("Connected to Duino-Coin server")
 server_ver = String(read(socket, 3))
 println("Server is on version: ", server_ver)
 
-# Convert hex string to bytes
-function hex2bytes_custom(hex_str)
-    len = length(hex_str)
-    bytes = Vector{UInt8}(undef, div(len, 2))
-    for i in 1:2:len-1
-        bytes[div(i+1, 2)] = parse(UInt8, hex_str[i:i+1], base=16)
-    end
-    return bytes
-end
-
 # DUCO-S1 algorithm implementation - returns the found share or 0 if not found
 function ducosha1(lastBlockHash, expected_hash, difficulty)
-    expected_hash_bytes = hex2bytes_custom(expected_hash)
+    #expected_hash_bytes = hex2bytes_custom(expected_hash)
+	expected_hash_bytes = SHA.hex2bytes(expected_hash)
     
     for i = 0:(100 * difficulty)
-        hash_input = string(lastBlockHash, i)
-        hash_bytes = sha1(hash_input)
-        
+        string_to_hash = string(lastBlockHash, string.(i))
+        hash_bytes = bytes2hex(sha1(string_to_hash))
+
         if hash_bytes == expected_hash_bytes
             return i
         end
@@ -78,7 +70,7 @@ while true
                 println("Duration: $(duration) seconds, Hashrate: $(round(hashrate/1000, digits=2)) kH/s")
                 
                 # Send result back
-                response = "$(result),$(hashrate),Julia Miner"
+                response = "$(result),$(hashrate),Julia Miner,$(rig_id)"
                 println("Sending response: $(response)")
                 write(socket, response)
                 
@@ -100,15 +92,6 @@ while true
         # Print stack trace for better debugging
         println("Stack trace: ", catch_backtrace())
         sleep(3)
-        try
-            global socket = Sockets.connect(socket_ip, socket_port)
-            println("Reconnected to server")
-        catch
-            println("Reconnection failed. Retrying in 5 seconds...")
-            sleep(5)
-        end
-    end
-end
         try
             global socket = Sockets.connect(socket_ip, socket_port)
             println("Reconnected to server")
