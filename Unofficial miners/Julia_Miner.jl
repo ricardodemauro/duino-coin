@@ -17,14 +17,12 @@ println("Server is on version: ", server_ver)
 
 # DUCO-S1 algorithm implementation - returns the found share or 0 if not found
 function ducosha1(lastBlockHash, expected_hash, difficulty)
-    #expected_hash_bytes = hex2bytes_custom(expected_hash)
-	expected_hash_bytes = SHA.hex2bytes(expected_hash)
-    
+    # Either directly compare hex strings:
     for i = 0:(100 * difficulty)
-        string_to_hash = string(lastBlockHash, string.(i))
-        hash_bytes = bytes2hex(sha1(string_to_hash))
-
-        if hash_bytes == expected_hash_bytes
+        string_to_hash = string(lastBlockHash, i)  # No need for string.(i) - this is broadcasting syntax
+        hash_result = bytes2hex(sha1(string_to_hash))
+        
+        if hash_result == expected_hash
             return i
         end
     end
@@ -99,5 +97,7 @@ while true
             println("Reconnection failed. Retrying in 5 seconds...")
             sleep(5)
         end
+    end
+end
     end
 end
