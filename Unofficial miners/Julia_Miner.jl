@@ -1,17 +1,26 @@
 using Sockets
 using SHA
-username = "revox" # Replace this with your username
 
-socket = Sockets.connect("51.15.127.80", 2811)
+username = ENV["DUINO_USERNAME"]
+mining_key = ENV["DUINO_MINING_KEY"]
+
+socket_ip = "152.53.241.160"
+socket_port = 7070
+
+socket = Sockets.connect(socket_ip, socket_port)
 println("Connected to Duino-Coin server")
 
 server_ver = String(read(socket, 3))
 println("Server is on version: ", server_ver)
 
 while true
-	write(socket, string("JOB,", String(username), ",MEDIUM"))
+	msg = "JOB," + str(username) + ",LOW," + str(mining_key)
+	byte_message = codeunits(msg)
+	
+	write(socket, byte_message)
+
 	job = String(read(socket, 87))
-	#println("Job received: ", job)
+	println("Job received: ", job)
 
 	job = split(job, ",")
 	lastBlockHash = job[1]
